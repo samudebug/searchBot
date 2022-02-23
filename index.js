@@ -99,7 +99,7 @@ client.on('message', message => {
     if (isProcedureStarted && message.author.id.toString() == inProcedureUserID)
     {
         if (!message.content.toString() == "s!stoptxt") {
-            fs.writeFileSync(message.content.toString() + "\n")
+            fs.writeFile()
         }
     }
 
@@ -140,6 +140,7 @@ client.on('message', message => {
             if (message.author.id.toString() != inProcedureUserID) return message.channel.send("You can't stop someone else's procedure.")
             isProcedureStarted = false
             inProcedureUserID = "unused"
+            fs.closeSync(0)
             newTextFileName = "none"
             break;
     }
