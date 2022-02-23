@@ -236,6 +236,18 @@ client.on('message', message => {
         message.channel.send(string)
     }
     if (command === "youtube" || command === "yt")
+    {
+        string = "<https://stackoverflow.com/search?q="
+        i = 0
+        while(i < args.length)
+        {
+            if (i == args.length - 1) string = string + args[i]
+            else string = string + args[i] + '+'
+            i++
+        }
+        string = string + ">"
+        message.channel.send(`Here is your link, ${message.author}!` + "\n" + string)
+    }
 })
 
 client.login(config.token);
