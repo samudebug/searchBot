@@ -1,8 +1,13 @@
 const Discord = require('discord.js')
+const { Permissions } = require('discord.js');
 const client = new Discord.Client()
 const config = require('./config.json')
-var fs = require('fs')
+var fs = require('fs');
+const { channel } = require('diagnostics_channel');
 var sec = 0
+var isProcedureStarted = false
+var inProcedureUserID = ""
+var newTextFileName = "" //ALWAYS WITHOUT TXT
 
 function timer(){
     var timer = setInterval(function(){
@@ -13,8 +18,12 @@ function timer(){
     }, 1000);
 }
 
-function startTimer(){
+function startCooldown(){
     sec = config.commandCooldown
+    timer()
+}
+
+function startTimer(sec){
     timer()
 }
 
@@ -22,7 +31,7 @@ function typeFromTXT(txtFile, upperCase)
 {
     var upperCaseBool = false
     if (upperCase == "true") upperCaseBool = true
-    var MSGArray = fs.readFileSync('./resources/' + txtFile + ".txt").toString().split("\n");
+    var MSGArray = fs.readFileSync('./txtFiles/' + txtFile + ".txt").toString().split("\n")
     var MSG = ""
     i = 0
     while (i < MSGArray.length)
@@ -32,54 +41,183 @@ function typeFromTXT(txtFile, upperCase)
         i++
     }
     if (upperCaseBool) MSG = MSG.toUpperCase()
-    startTimer()
+    startCooldown()
     return MSG;
 }
 
+function typeFromArray(array)
+{
+    var MSG = ""
+    i = 0
+    while (i < array.length)
+    {
+        if (i == array.length - 1) MSG = MSG + array[i]
+        else MSG = MSG + array[i] + "\n"
+        i++
+    }
+    return MSG;
+}
+
+function idCheck(userID)
+{
+    var allowedIDs = config.allowedIDs
+    var isAllowed = false
+    i = 0
+    while(i < allowedIDs.length)
+    {
+        if (userID == allowedIDs[i]) isAllowed = true
+        i++
+    }
+    return isAllowed
+}
+
 client.on('ready', () => {
-    console.log('Bot active')
     client.user.setActivity("users that type s!", {
         type: "LISTENING",
     })
+    console.log('Bot started, sexo gaming')
 })
 
 client.on('message', message => {
-    if (!message.content.startsWith(config.prefix) || message.author.bot) return
-    //ignores everything itself says and messages without prefix
-    const args = message.content.slice(config.prefix.length).trim().split(/ +/)
-    const command = args.shift().toLowerCase()
-    message.delete();
-    //add stuff that doesnt need arguments here
-    if (command === "help")
+
+    if (message.author.bot) return; //THIS PREVENTS CODE FROM RUNNING IF AUTHOR IS BOT
+    /*
+        AUTOCODE: THIS CODE ISNT COMMAND BASED, IT RUNS AUTOMATICALLY
+    */
+
+    // AUTO REMOVE TRACING FROM TWEET
+    if(message.content.startsWith("https://twitter.com/") && message.content.toString().includes("/status/") && message.content.toString().includes("?"))
     {
-        var helpMSGArray = fs.readFileSync('./resources/helpMSG.txt').toString().split("\n");
-        var helpMSG = ""
-        i = 0
-        while (i < helpMSGArray.length)
-        {
-            if (i == helpMSGArray.length - 1) helpMSG = helpMSG + helpMSGArray[i]
-            else helpMSG = helpMSG + helpMSGArray[i] + "\n"
-            i++
+        var newMsg = message.content.toString()
+        newMsg = newMsg.slice(0, newMsg.lastIndexOf('?'))
+        message.delete()
+        message.channel.send(newMsg)
+        message.channel.send(`Tweet sent by ${message.author}`)
+    }
+
+    // TYPE INSIDE FILE TO SAVE AS .TXT
+    if (isProcedureStarted && message.author.id.toString() == inProcedureUserID)
+    {
+        if (!message.content.toString() == "s!stoptxt") {
+            fs.writeFileSync(message.content.toString() + "\n")
         }
-        message.channel.send("Sending in DMs! :cat:")
-        message.author.send(helpMSG)
-        return;
     }
-    //add other stuff here
-    if (!args.length) return message.channel.send(`You didn't provide anything for me to search, ${message.author}!`)
-    if (command === 'timer')
+
+    /* 
+        COMMANDS: THIS CODE IS COMMAND BASED, IT DOES NOT RUN AUTOMATICALLY
+    */
+
+    if (!message.content.startsWith(config.prefix) || message.guild === null ) return //IGNORES NON COMMAND MESSAGES AND BLOCKS DMS
+
+    const args = message.content.slice(config.prefix.length).trim().split(/ +/) //GATHERS WHOLE MESSAGE
+    const command = args.shift().toLowerCase() 
+    message.delete()//DELETES USER COMMAND
+
+    /*
+        NON ARGUMENT COMMANDS
+    */
+    switch(command)
     {
-        if (message.author.id != 372345796726882305) return
-        if (args.length > 1) return
-        var newTime = parseInt(args[0], 10)
-        sec = newTime
+        case "help":
+            message.channel.send("Sending in DMs :cat:")
+            message.author.send("=== LIST OF COMMANDS ===")
+            message.author.send(typeFromTXT("helpMSG", false))
+            break;
+        case "txtlist":
+            var fileNames = fs.readdirSync("./txtFiles")
+            message.author.send("List of TXT files:")
+            message.author.send(typeFromArray(fileNames))
+            break;
+        case "filelist":
+            var fileNames = fs.readdirSync("./resources")
+            message.author.send("List of Embed files:")
+            message.author.send(typeFromArray(fileNames))
+            break;
+        case "stoptxt":
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) return
+            if (!isProcedureStarted) return message.channel.send("There is no 'createText' procedure enabled.")
+            if (message.author.id.toString() != inProcedureUserID) return message.channel.send("You can't stop someone else's procedure.")
+            isProcedureStarted = false
+            inProcedureUserID = "unused"
+            newTextFileName = "none"
+            break;
     }
-    if (command === 'filesay')
+
+    if (args.length < 1) return //PREVENTS ARGUMENT COMMANDS FROM RUNNING
+
+    /*
+        ARGUMENT COMMANDS
+    */
+    
+    switch(command)
     {
-        if (sec > 0) return message.channel.send("Command in cool down, remaining seconds: " + sec)
-        if(args.length > 2) return;
-        message.channel.send(typeFromTXT(args[0], args[1]))
+        case "timer":
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) return
+            if (args.length > 1) return
+            var newTime = parseInt(args[0], 10)
+            sec = newTime
+            break;
+        case "say":
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) return
+            var string = ""
+            i = 0
+            while (i < args.length)
+            {
+                if (i == args.length - 1) string = string + args[i]
+                else string = string + args[i] + " "
+                i++
+            }
+            message.channel.send(string)
+            break;
+        case "filesay":
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) if (sec > 0) return message.channel.send("Command in cool down, remaining seconds: " + sec)
+            if(args.length > 2) return
+            if(args[0] == "helpMSG") return
+            message.channel.send(typeFromTXT(args[0], args[1]))
+            message.channel.send(`Requested by ${message.author}`)
+            break;
+        case "postfile":
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) if (sec > 0) return message.channel.send("Command in cool down, remaining seconds: " + sec)
+            if(args.length > 1) return;
+            message.channel.send("", { files: ["./resources/" + args[0]]})
+            message.channel.send(`Requested by ${message.author}`)
+            break;
+        case "nick":
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) return
+            if (args.length < 2) return
+            let usr = message.mentions.members.first()
+            if(!usr.bannable) return
+            i = 1
+            var newNick = ""
+            while (i < args.length)
+            {
+                newNick = newNick + args[i] + " "
+                i++
+            }
+            usr.setNickname(newNick)
+            break;
+        case "newtxt":
+            if(isProcedureStarted) return message.channel.send("Someone else is using this functionality, wait for them to finish.")
+            var userID = message.author.id.toString()
+            if (!idCheck(userID)) return
+            if (args.length != 1) return
+            isProcedureStarted = true
+            inProcedureUserID = message.author.id.toString()
+            newTextFileName = args[0]
+            if (newTextFileName.includes(".txt")) newTextFileName = newTextFileName.substring(0, str.length - 4)
+            fs.createWriteStream('./txtFiles/' + newTextFileName + '.txt')
+            break;
     }
+    /*
+        SEARCH COMMANDS COMMANDS
+    */
+    
     if (command === 'fitgirl' || command === 'fit' || command === 'repack')
     {
         string = "<https://fitgirl-repacks.site/?s="
@@ -270,19 +408,6 @@ client.on('message', message => {
         
         string = string + ">"
         message.channel.send(`Here is your link, ${message.author}!` + "\n" + string)
-    }
-    if (command === "say")
-    {
-        if (message.author.id != 372345796726882305) return
-        string = ""
-        i = 0
-        while (i < args.length)
-        {
-            if (i == args.length - 1) string = string + args[i]
-            else string = string + args[i] + " "
-            i++
-        }
-        message.channel.send(string)
     }
     if (command === "youtube" || command === "yt")
     {
