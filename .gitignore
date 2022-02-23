@@ -4,3 +4,9 @@ index_old.js
 node_modules
 *.mov
 *.txt
+*.mp4
+*.gif
+*.png
+*.jpg
+package-lock.json
+package.json
