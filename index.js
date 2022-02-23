@@ -2,6 +2,39 @@ const Discord = require('discord.js')
 const client = new Discord.Client()
 const config = require('./config.json')
 var fs = require('fs')
+var sec = 0
+
+function timer(){
+    var timer = setInterval(function(){
+        sec--;
+        if (sec < 0) {
+            clearInterval(timer);
+        }
+    }, 1000);
+}
+
+function startTimer(){
+    sec = config.commandCooldown
+    timer()
+}
+
+function typeFromTXT(txtFile, upperCase)
+{
+    var upperCaseBool = false
+    if (upperCase == "true") upperCaseBool = true
+    var MSGArray = fs.readFileSync('./resources/' + txtFile + ".txt").toString().split("\n");
+    var MSG = ""
+    i = 0
+    while (i < MSGArray.length)
+    {
+        if (i == MSGArray.length - 1) MSG = MSG + MSGArray[i]
+        else MSG = MSG + MSGArray[i] + "\n"
+        i++
+    }
+    if (upperCaseBool) MSG = MSG.toUpperCase()
+    startTimer()
+    return MSG;
+}
 
 client.on('ready', () => {
     console.log('Bot active')
@@ -16,7 +49,7 @@ client.on('message', message => {
     const args = message.content.slice(config.prefix.length).trim().split(/ +/)
     const command = args.shift().toLowerCase()
     message.delete();
-    if (!args.length) return message.channel.send(`You didn't provide anything for me to search, ${message.author}!`)
+    //add stuff that doesnt need arguments here
     if (command === "help")
     {
         var helpMSGArray = fs.readFileSync('./resources/helpMSG.txt').toString().split("\n");
@@ -30,6 +63,22 @@ client.on('message', message => {
         }
         message.channel.send("Sending in DMs! :cat:")
         message.author.send(helpMSG)
+        return;
+    }
+    //add other stuff here
+    if (!args.length) return message.channel.send(`You didn't provide anything for me to search, ${message.author}!`)
+    if (command === 'timer')
+    {
+        if (message.author.id != 372345796726882305) return
+        if (args.length > 1) return
+        var newTime = parseInt(args[0], 10)
+        sec = newTime
+    }
+    if (command === 'filesay')
+    {
+        if (sec > 0) return message.channel.send("Command in cool down, remaining seconds: " + sec)
+        if(args.length > 2) return;
+        message.channel.send(typeFromTXT(args[0], args[1]))
     }
     if (command === 'fitgirl' || command === 'fit' || command === 'repack')
     {
@@ -237,7 +286,7 @@ client.on('message', message => {
     }
     if (command === "youtube" || command === "yt")
     {
-        string = "<https://stackoverflow.com/search?q="
+        string = "<https://www.youtube.com/results?search_query="
         i = 0
         while(i < args.length)
         {
