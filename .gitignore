@@ -2,3 +2,5 @@
 config.json
 index_old.js
 node_modules
+*.mov
+*.txt
