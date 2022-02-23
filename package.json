@@ -1,0 +1,22 @@
+{
+  "name": "searchbot",
+  "version": "0.0.1",
+  "description": "A Simple bot made for fun",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shujynx/searchBot.git"
+  },
+  "author": "Shujynx",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shujynx/searchBot/issues"
+  },
+  "homepage": "https://github.com/shujynx/searchBot#readme",
+  "dependencies": {
+    "discord.js": "^12.5.3"
+  }
+}

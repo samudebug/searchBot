@@ -8,5 +8,3 @@ node_modules
 *.gif
 *.png
 *.jpg
-package-lock.json
-package.json
