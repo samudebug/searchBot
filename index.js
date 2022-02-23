@@ -1,6 +1,7 @@
 const Discord = require('discord.js')
 const client = new Discord.Client()
 const config = require('./config.json')
+var fs = require('fs')
 
 client.on('ready', () => {
     console.log('Bot active')
@@ -15,9 +16,23 @@ client.on('message', message => {
     const args = message.content.slice(config.prefix.length).trim().split(/ +/)
     const command = args.shift().toLowerCase()
     message.delete();
+    if (!args.length) return message.channel.send(`You didn't provide anything for me to search, ${message.author}!`)
+    if (command === "help")
+    {
+        var helpMSGArray = fs.readFileSync('./resources/helpMSG.txt').toString().split("\n");
+        var helpMSG = ""
+        i = 0
+        while (i < helpMSGArray.length)
+        {
+            if (i == helpMSGArray.length - 1) helpMSG = helpMSG + helpMSGArray[i]
+            else helpMSG = helpMSG + helpMSGArray[i] + "\n"
+            i++
+        }
+        message.channel.send("Sending in DMs! :cat:")
+        message.author.send(helpMSG)
+    }
     if (command === 'fitgirl' || command === 'fit' || command === 'repack')
     {
-        if (!args.length) return message.channel.send(`You didn't provide anything for me to search, ${message.author}!`)
         string = "<https://fitgirl-repacks.site/?s="
         i = 0
         while(i < args.length)
@@ -31,9 +46,12 @@ client.on('message', message => {
     }
     if (command === '1337x')
     {
-        if (!args.length) return message.channel.send(`You didn't provide anything for me to search, ${message.author}!`)
         switch(args[0])
         {
+            case "catg":
+                message.channel.send("Sending in DMs! :cat:")
+                message.user.send("game, music, movie, tv, app, docs, anime, porn")
+                break;
             case "game":
                 string = "<https://1337x.to/category-search/"
                 i = 1
@@ -176,6 +194,48 @@ client.on('message', message => {
         string = string + ">"
         message.channel.send(`Here is your link, ${message.author}!` + "\n" + string)
     }
+    if (command === "reddit" || command === "sub")
+    {
+        if (args[0].startsWith("r/"))
+        {
+            string = "<https://www.reddit.com/"
+            string = string + args[0].toLowerCase()
+            string = string + "/search/?q="
+            i = 1
+            while(i < args.length)
+            {
+                if (i == args.length - 1) string = string + args[i]
+                else string = string + args[i] + '+'
+                i++
+            }
+        } else {
+            string = "<https://www.reddit.com/search/?q="
+            i = 0
+            while(i < args.length)
+            {
+               if (i == args.length - 1) string = string + args[i]
+               else string = string + args[i] + '+'
+               i++
+            }
+        }
+        
+        string = string + ">"
+        message.channel.send(`Here is your link, ${message.author}!` + "\n" + string)
+    }
+    if (command === "say")
+    {
+        if (message.author.id != 372345796726882305) return
+        string = ""
+        i = 0
+        while (i < args.length)
+        {
+            if (i == args.length - 1) string = string + args[i]
+            else string = string + args[i] + " "
+            i++
+        }
+        message.channel.send(string)
+    }
+    if (command === "youtube" || command === "yt")
 })
 
 client.login(config.token);
